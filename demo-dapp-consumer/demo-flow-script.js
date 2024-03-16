@@ -8,7 +8,7 @@ import { createSmartAccountClient } from "@alchemy/aa-core";
 import { encodeFunctionData } from "viem";
 
 const account = privateKeyToAccount(
-  "0x1715b6f3252e8303786bb2a84ba855c226b71bbd98de93d8a1fc6bba999e0dcd"
+  "0x9dd45441937793df2f03c6684ed65b4e0407f78caa548d8e7a65b230dcc4294d"
 );
 
 const chain = polygonMumbai;
@@ -69,20 +69,19 @@ async function setupSmartAccountClient() {
     } for gas sponsorship`
   );
 
-  /*
   const uo = await smartAccountClient.sendUserOperation({
     uo: {
       target: demoNftContractAddr,
       data: uoCallData,
     },
   });
-  */
+
   const txHash = await smartAccountClient.waitForUserOperationTransaction(uo);
   console.log(txHash);
 
-  //const myAddress = await smartAccountClient.getAddress();
+  const myAddress = await smartAccountClient.getAddress();
 
-  //console.log("logs", myAddress);
+  console.log("logs", myAddress);
   console.log("the smart account", smartAccountClient);
 }
 
