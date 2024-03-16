@@ -1,0 +1,9 @@
+{
+  "type": "module",
+  "dependencies": {
+    "@alchemy/aa-accounts": "^3.5.1",
+    "@alchemy/aa-alchemy": "^3.5.1",
+    "@alchemy/aa-core": "^3.5.1",
+    "viem": "^1.0.0"
+  }
+}
