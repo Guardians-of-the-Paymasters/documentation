@@ -3,12 +3,12 @@ import { privateKeyToAccount } from "viem/accounts";
 // import { mnemonicToAccount } from "viem/accounts";
 import { polygonMumbai } from "@alchemy/aa-core";
 import { WalletClientSigner } from "@alchemy/aa-core";
-import { createMultiOwnerModularAccount } from "@alchemy/aa-accounts";
+import { createModularAccountAlchemyClient } from "@alchemy/aa-alchemy";
 import { createSmartAccountClient } from "@alchemy/aa-core";
 import { encodeFunctionData } from "viem";
 
 const account = privateKeyToAccount(
-  "0x1715b6f3252e8303786bb2a84ba855c226b71bbd98de93d8a1fc6bba999e0dcd"
+  "0x9dd45441937793df2f03c6684ed65b4e0407f78caa548d8e7a65b230dcc4294d"
 );
 
 const chain = polygonMumbai;
@@ -30,68 +30,56 @@ const rpcTransport = http(
 async function setupSmartAccountClient() {
   const signer = new WalletClientSigner(client, "local");
 
-  const smartAccountClient = await createSmartAccountClient({
-    transport: rpcTransport,
+  const smartAccountClient = await createModularAccountAlchemyClient({
     apiKey: "P6woMremN9q2B7uPuufS3fS9w72OpW0q",
     chain,
     gasManagerConfig: {
       policyId: "41ad3aa4-6473-4501-97aa-0fe51a13f22f",
     },
-    account: await createMultiOwnerModularAccount({
-      transport: rpcTransport,
-      chain,
-      signer,
-      gasManagerConfig: {
-        policyId: "41ad3aa4-6473-4501-97aa-0fe51a13f22f",
-      },
-      apiKey: "P6woMremN9q2B7uPuufS3fS9w72OpW0q",
-    }),
+    signer,
   });
 
   const DemoNftABI = [
     {
       inputs: [],
-      name: "mint",
+      name: "sayHelloDemo",
       outputs: [],
       stateMutability: "nonpayable",
       type: "function",
     },
   ];
+
   const uoCallData = encodeFunctionData({
     abi: DemoNftABI,
-    functionName: "mint",
+    functionName: "sayHelloDemo",
     args: [],
   });
 
-  const demoNftContractAddr = "0xD7775C745609303C081cAE1924C77c1a379F92D3";
+  const demoNftContractAddr = "0x1f7f72D69c95b2B78663EB6d8fE3A20dd916c0e7";
 
-  const eligible = await smartAccountClient.checkGasSponsorshipEligibility({
+  const uoStruct = await smartAccountClient.buildUserOperation({
     uo: {
       target: demoNftContractAddr,
       data: uoCallData,
     },
   });
 
-  console.log(
-    `User Operation is ${
-      eligible ? "eligible" : "ineligible"
-    } for gas sponsorship`
-  );
+  const request = await smartAccountClient.signUserOperation({
+    uoStruct,
+  });
 
-  const uo = await smartAccountClient.sendUserOperation({
+  const uoSimResult = await smartAccountClient.simulateUserOperation({
     uo: {
       target: demoNftContractAddr,
       data: uoCallData,
     },
   });
 
-  const txHash = await smartAccountClient.waitForUserOperationTransaction(uo);
-  console.log(txHash);
+  const myAddress = await smartAccountClient.getAddress();
 
-  //const myAddress = await smartAccountClient.getAddress();
-
-  //console.log("logs", myAddress);
-  console.log("the smart account", smartAccountClient);
+  console.log("my SCA address", myAddress);
+  console.log("the signed tx", request);
+  console.log("the simulated user operation", uoSimResult);
 }
 
 setupSmartAccountClient().catch(console.error);
