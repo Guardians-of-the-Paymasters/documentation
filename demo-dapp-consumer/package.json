@@ -7,6 +7,7 @@
     "@openchainxyz/abi-guesser": "^1.0.2",
     "axios": "^1.6.8",
     "ethers": "5.7.2",
+    "permissionless": "^0.1.10",
     "viem": "^1.0.0"
   }
 }
