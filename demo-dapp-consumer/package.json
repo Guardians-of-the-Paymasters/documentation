@@ -4,6 +4,9 @@
     "@alchemy/aa-accounts": "^3.5.1",
     "@alchemy/aa-alchemy": "^3.5.1",
     "@alchemy/aa-core": "^3.5.1",
+    "@openchainxyz/abi-guesser": "^1.0.2",
+    "axios": "^1.6.8",
+    "ethers": "5.7.2",
     "viem": "^1.0.0"
   }
 }

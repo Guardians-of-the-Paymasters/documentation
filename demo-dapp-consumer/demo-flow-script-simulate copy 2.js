@@ -6,12 +6,11 @@ import { WalletClientSigner } from "@alchemy/aa-core";
 import { createModularAccountAlchemyClient } from "@alchemy/aa-alchemy";
 import { createSmartAccountClient } from "@alchemy/aa-core";
 import { encodeFunctionData } from "viem";
-import pkg from "ethers";
-const { ethers, AbiCoder } = pkg;
+import { ethers } from "ethers";
 const account = privateKeyToAccount(
   "0x9dd45441937793df2f03c6684ed65b4e0407f78caa548d8e7a65b230dcc4294d"
 );
-import { guessAbiEncodedData } from "@openchainxyz/abi-guesser";
+
 const chain = polygonMumbai;
 
 // This client can now be used to do things like `eth_requestAccounts`
@@ -84,62 +83,37 @@ async function setupSmartAccountClient() {
   console.log("the signed tx", request);
   console.log("the simulated user operation", uoSimResult);
 
-  const decodeCallData = async (calldata) => {
-    if (!calldata) {
-      console.log("No calldata provided");
-      return;
-    }
+  /*
+  const decodeAttempt = decodeFunctionData({
+    abi: DemoNftABI,
+    data: request.callData,
+  });
 
+  console.log("attempt decoding tx", decodeAttempt);
+*/
+
+  function decodeCalldata(abi, calldata) {
+    const iface = new ethers.utils.Interface(abi);
     try {
-      // Guess ABI encoded data structure
-
-      //const paramTypes = guessAbiEncodedData(calldata);
-      //if (!paramTypes) throw new Error("Failed to guess ABI encoded data");
-
-      const encodedParams = calldata;
-
-      try {
-        const paramTypes = guessAbiEncodedData(calldata);
-
-        const abiCoder = ethers.utils.defaultAbiCoder;
-        const decoded = abiCoder.decode(paramTypes, calldata);
-        console.log("Decoded with guessed ABI:", decoded);
-      } catch {
-        const encodedParams = "0x" + calldata.slice(10);
-        const paramTypes = guessAbiEncodedData(encodedParams);
-
-        const abiCoder = ethers.utils.defaultAbiCoder;
-        const decoded = abiCoder.decode(paramTypes, encodedParams);
-        //console.log("Decoded with guessed ABI:", decoded);
-        //console.log(JSON.stringify(decoded));
-        //@notice
-        // first array element is the target address
-        // second element is the args
-        // third element is the functionTopic called.
-
-        // Create an object with the decoded data, assuming the structure you've mentioned
-        const decodedObject = {
-          targetAddress: decoded[0]?.toString(),
-          args: decoded[1], // Assuming args is directly usable or you might want to stringify if complex
-          functionTopic: decoded[2]?.toString(),
-        };
-
-        // Log the structured object prettily
-        console.log(
-          "Decoded ABI Data:",
-          JSON.stringify(decodedObject, null, 2)
-        );
-      }
-    } catch (guessError) {
-      console.error("Error decoding with guessed ABI:", guessError);
+      const decoded = iface.parseTransaction({ data: calldata });
+      console.log("Decoded function:", decoded.name);
+      console.log("Decoded arguments:", decoded.args);
+    } catch (error) {
+      console.error("Error decoding calldata:", error.message);
     }
-  };
+  }
+  decodeCalldata(DemoNftABI, request.callData);
 
-  decodeCallData(request.callData);
+  const iface = new ethers.utils.Interface(DemoNftABI);
+
+  // Decode the callData
+  const decoded2 = iface.parseTransaction({ data: request.callData });
+
+  console.log("attempt decoding tx", decoded2);
 
   //AFTER Guardians of the Paymasters checked everything, we can do this:
 
-  //0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789 is the entryPointaddress on all evm chains
+  //0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789 its this
   const entryPointAddress = smartAccountClient.account.getEntryPoint().address;
   /*
   const uoHash = await smartAccountClient.sendRawUserOperation({
