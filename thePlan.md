@@ -40,6 +40,8 @@ The development of **Guardians of the Paymasters** is organized around several k
 2. **Mint NFT Demo Button**
    - Implement a feature for gasless NFT minting using a throwaway private key, designed for demonstration purposes.
 
+3. **Demo Deploy Smart Contract Account via the API wrapper against Alchemy
+   - Trigger a smart contract account deployment through the API wrapper vs the policies
 3. **Gasless Demo Case**
    - Develop a gasless demo case, such as a Tic Tac Toe game, to showcase the capabilities of our platform.
 
