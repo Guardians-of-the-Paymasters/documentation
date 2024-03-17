@@ -29,7 +29,6 @@ export const publicClient = createPublicClient({
 
 const apiKey = process.env.PIMLICO_API_KEY; // REPLACE THIS
 
-//@notice just to get the gasprizes from pimlico itself. This can be offloaded later on to a custom RPC or asking pimlico to offer a read-only apikey
 const endpointUrl = `https://api.pimlico.io/v2/sepolia/rpc?apikey=${apiKey}`;
 
 const bundlerClient = createClient({
