@@ -20,7 +20,7 @@ import {
   http,
 } from "viem";
 import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
-import { sepolia, polygonMumbai } from "viem/chains";
+import { sepolia } from "viem/chains";
 
 export const publicClient = createPublicClient({
   transport: http("https://rpc.ankr.com/eth_sepolia"),
@@ -28,8 +28,6 @@ export const publicClient = createPublicClient({
 });
 
 const apiKey = process.env.PIMLICO_API_KEY; // REPLACE THIS
-
-//@notice just to get the gasprizes from pimlico itself. This can be offloaded later on to a custom RPC or asking pimlico to offer a read-only apikey
 const endpointUrl = `https://api.pimlico.io/v2/sepolia/rpc?apikey=${apiKey}`;
 
 const bundlerClient = createClient({
@@ -38,6 +36,11 @@ const bundlerClient = createClient({
 })
   .extend(bundlerActions(ENTRYPOINT_ADDRESS_V07))
   .extend(pimlicoBundlerActions(ENTRYPOINT_ADDRESS_V07));
+
+const paymasterClient = createClient({
+  transport: http(endpointUrl),
+  chain: sepolia,
+}).extend(pimlicoPaymasterActions(ENTRYPOINT_ADDRESS_V07));
 
 const SIMPLE_ACCOUNT_FACTORY_ADDRESS =
   "0x91E60e0613810449d098b0b5Ec8b51A0FE8c8985";
@@ -71,7 +74,6 @@ const senderAddress = await getSenderAddress(publicClient, {
   factoryData,
   entryPoint: ENTRYPOINT_ADDRESS_V07,
 });
-
 console.log("Calculated sender address:", senderAddress);
 
 const to = "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"; // vitalik
@@ -99,8 +101,6 @@ console.log("Generated callData:", callData);
 
 const gasPrice = await bundlerClient.getUserOperationGasPrice();
 
-//@TODO we send THIS to the backend.
-
 const userOperation = {
   sender: senderAddress,
   nonce: 0n,
@@ -113,4 +113,43 @@ const userOperation = {
   signature:
     "0xa15569dd8f8324dbeabf8073fdec36d4b754f53ce5901e283c6de79af177dc94557fa3c9922cd7af2a96ca94402d35c39f266925ee6407aeb32b31d76978d4ba1c" as Hex,
 };
-console.log(userOperation);
+
+const sponsorUserOperationResult = await paymasterClient.sponsorUserOperation({
+  userOperation,
+});
+
+const sponsoredUserOperation: UserOperation<"v0.7"> = {
+  ...userOperation,
+  ...sponsorUserOperationResult,
+};
+
+console.log("Received paymaster sponsor result:", sponsorUserOperationResult);
+
+const signature = await signUserOperationHashWithECDSA({
+  account: owner,
+  userOperation: sponsoredUserOperation,
+  chainId: sepolia.id,
+  entryPoint: ENTRYPOINT_ADDRESS_V07,
+});
+sponsoredUserOperation.signature = signature;
+
+console.log("Generated signature:", signature);
+
+const userOperationHash = await bundlerClient.sendUserOperation({
+  userOperation: sponsoredUserOperation,
+});
+
+const gasPrices = await bundlerClient.getUserOperationGasPrice();
+
+console.log("Received User Operation hash:", userOperationHash);
+
+// let's also wait for the userOperation to be included, by continually querying for the receipts
+console.log("Querying for receipts...");
+const receipt = await bundlerClient.waitForUserOperationReceipt({
+  hash: userOperationHash,
+});
+const txHash = receipt.receipt.transactionHash;
+
+console.log(
+  `UserOperation included: https://sepolia.etherscan.io/tx/${txHash}`
+);
