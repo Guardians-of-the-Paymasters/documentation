@@ -1,0 +1,22 @@
+{
+  "description": "",
+  "main": "index.ts",
+  "type": "module",
+  "scripts": {
+    "demo-dapp-FE": "tsx demo-signature-created.ts",
+    "demo-dapp-FE-execute": "tsx demo-signature-executed-paymaster.ts",
+    "demo-dapp-FE-EOA": "tsx demo-signature-executed-EOA.ts",
+    "demo-dapp-FE-execute-final": "tsx demo-signature-executed-submit.ts"
+  },
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "permissionless": "^0.1.4",
+    "viem": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "tsx": "^3.13.0"
+  }
+}

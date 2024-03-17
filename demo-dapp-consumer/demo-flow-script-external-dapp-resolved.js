@@ -1,44 +1,62 @@
 import { createWalletClient, decodeFunctionData, http } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 // import { mnemonicToAccount } from "viem/accounts";
-import { polygonMumbai, sepolia } from "@alchemy/aa-core";
+import { polygonMumbai, sepolia, createBundlerClient } from "@alchemy/aa-core";
 import { WalletClientSigner } from "@alchemy/aa-core";
-import { createModularAccountAlchemyClient } from "@alchemy/aa-alchemy";
-import { createSmartAccountClient } from "@alchemy/aa-core";
+import {
+  createModularAccountAlchemyClient,
+  createAlchemyPublicRpcClient,
+} from "@alchemy/aa-alchemy";
+
 import { encodeFunctionData } from "viem";
 import pkg from "ethers";
 const { ethers, AbiCoder } = pkg;
 const account = privateKeyToAccount(
   "0x9dd45441937793df2f03c6684ed65b4e0407f78caa548d8e7a65b230dcc4294d"
 );
+
+const accountFaker = privateKeyToAccount(
+  "0x326cdb9b20acab682dad783053ddda9ddaf53597f22b781ad947d807b1a07622"
+);
+
 import { guessAbiEncodedData } from "@openchainxyz/abi-guesser";
 
 const chain = polygonMumbai;
 
 // This client can now be used to do things like `eth_requestAccounts`
-export const client = createWalletClient({
+export const clientSignerWallet = createWalletClient({
   account,
+  chain,
+  transport: http(),
+});
+export const clientFaker = createWalletClient({
+  accountFaker,
   chain,
   transport: http(),
 });
 
 // this can now be used as an signer for a Smart Contract Account
-export const eoaSigner = new WalletClientSigner(client, "local");
+export const eoaSigner = new WalletClientSigner(clientSignerWallet, "local");
 
 const rpcTransport = http(
   "https://polygon-mumbai.g.alchemy.com/v2/P6woMremN9q2B7uPuufS3fS9w72OpW0q"
 );
 
 async function setupSmartAccountClient() {
-  const signer = new WalletClientSigner(client, "local");
-
+  let signer = new WalletClientSigner(clientSignerWallet, "local");
+  const signerFaker = new WalletClientSigner(clientFaker, "fairlyLocal");
   const smartAccountClientAlchemy = await createModularAccountAlchemyClient({
     apiKey: "P6woMremN9q2B7uPuufS3fS9w72OpW0q",
-    gasManagerConfig: {
-      policyId: "41ad3aa4-6473-4501-97aa-0fe51a13f22f",
-    },
+
     chain,
     signer,
+    gasEstimator: async (struct) => ({
+      ...struct,
+      callGasLimit: 0n,
+      preVerificationGas: 0n,
+      verificationGasLimit: 0n,
+      disableGasEstimation: true,
+    }),
   });
 
   const DemoNftABI = [
@@ -132,15 +150,33 @@ async function setupSmartAccountClient() {
 
   decodeCallData(request.callData);
 
-  //AFTER Guardians of the Paymasters checked everything, we can do this:
-  console.log(request);
+  //console.log(request);
 
-  const uoHash = await smartAccountClientAlchemy.sendRawUserOperation(
-    { ...request },
+  //AFTER Guardians of the Paymasters checked everything, we can do this:
+
+  console.log("signerFaker:", signerFaker);
+  const smartAccountClientBackend = await createModularAccountAlchemyClient({
+    apiKey: "P6woMremN9q2B7uPuufS3fS9w72OpW0q",
+    gasManagerConfig: {
+      policyId: "41ad3aa4-6473-4501-97aa-0fe51a13f22f",
+    },
+    chain,
+    signer,
+  });
+
+  const uoHash = await smartAccountClientBackend.sendRawUserOperation(
+    {
+      ...request,
+      preVerificationGas: "0x186A0",
+      callGasLimit: "0x186A0",
+      paymasterAndData:
+        "0xc03aac639bb21233e0139381970328db8bceeb67000000000000000065f61ac80000000000000000000000000000000000000000a22a054ce377df1fa9030f3c640f7bb237b22f837a624fdea6482990559c7846458cb9fde93cb3e20a0bb83f4c76e163634387e7bba38efa8a2f9befc1b94bf91b",
+    },
     "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
   );
-
+  /*
   console.log("the allowed userOp done", uoHash);
+  */
 }
 
 setupSmartAccountClient().catch(console.error);
